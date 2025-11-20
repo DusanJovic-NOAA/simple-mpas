@@ -1,0 +1,12 @@
+&share
+ wrf_core = 'ARW',
+ max_dom = 1,
+ start_date = '${START_YEAR}-${START_MONTH}-${START_DAY}_${START_HOUR}:00:00',
+ end_date   = '${STOP_YEAR}-${STOP_MONTH}-${STOP_DAY}_${STOP_HOUR}:00:00',
+ interval_seconds = ${INTERVAL_SECONDS}
+/
+
+&ungrib
+ out_format = 'WPS',
+ prefix = 'GFS',
+/
