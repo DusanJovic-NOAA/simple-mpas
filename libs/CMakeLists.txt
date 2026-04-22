@@ -224,3 +224,138 @@ ExternalProject_Add(pio
     LOG_INSTALL ON
 )
 ExternalProject_Add_StepDependencies(pio build netcdf_fortran pnetcdf genf90 cmake_fortran_utils)
+
+##
+## ESMF
+##
+list(APPEND esmf_env ESMF_DIR=${CMAKE_CURRENT_BINARY_DIR}/esmf-prefix/src/esmf)
+
+if(${CMAKE_C_COMPILER_ID} STREQUAL "Intel")
+  list(APPEND esmf_env ESMF_COMPILER=intel)
+elseif(${CMAKE_C_COMPILER_ID} MATCHES "IntelLLVM")
+  list(APPEND esmf_env ESMF_COMPILER=intel ESMF_C=${MPI_C_COMPILER} ESMF_CXX=${MPI_CXX_COMPILER} ESMF_F90=${MPI_Fortran_COMPILER} ESMF_CXXLINKLIBS=-lstdc++)
+elseif(${CMAKE_C_COMPILER_ID} MATCHES "^(GNU|Clang|AppleClang)$")
+  list(APPEND esmf_env ESMF_COMPILER=gfortran)
+else()
+  message(FATAL_ERROR "Unsupported compiler ${CMAKE_C_COMPILER_ID}")
+endif()
+
+if(NOT ESMF_COMM)
+  if(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*CRAY MPICH.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "mpi")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*MPICH.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "mpich")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*MPICH.*" AND MPI_C_VERSION_MAJOR MATCHES "4")
+    set(ESMF_COMM "mpich")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*Open MPI.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "openmpi")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*HPE MPT.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "mpt")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*Intel.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "intelmpi")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*Intel.*" AND MPI_C_VERSION_MAJOR MATCHES "4")
+    set(ESMF_COMM "intelmpi")
+  elseif(MPI_C_LIBRARY_VERSION_STRING MATCHES ".*MVAPICH2.*" AND MPI_C_VERSION_MAJOR MATCHES "3")
+    set(ESMF_COMM "mvapich2")
+  else()
+    message(STATUS "MPI_C_LIBRARY_VERSION_STRING = '${MPI_C_LIBRARY_VERSION_STRING}'")
+    message(STATUS "MPI_C_VERSION_MAJOR = '${MPI_C_VERSION_MAJOR}'")
+    message(FATAL_ERROR "Cannot detect MPI type for ESMF, check that it is supported and set it via -DMPITYPE=... ; valid options are: mpi, mpich3, openmpi, mpt, intelmpi, mvapich2")
+  endif()
+endif()
+message(STATUS "Set ESMF_COMM to ${ESMF_COMM}")
+
+list(APPEND esmf_env ESMF_COMM=${ESMF_COMM})
+list(APPEND esmf_env ESMF_BOPT=O)
+list(APPEND esmf_env ESMF_F90COMPILEOPTS=${FCFLAGS_esmf})
+list(APPEND esmf_env ESMF_CXXCOMPILEOPTS=${CXXFLAGS_esmf})
+list(APPEND esmf_env ESMF_MPIRUN=mpiexec)
+
+list(APPEND esmf_env ESMF_NETCDF=split)
+list(APPEND esmf_env ESMF_NETCDF_INCLUDE=${install_prefix}/netcdf/include)
+list(APPEND esmf_env "ESMF_NETCDF_LIBPATH=${install_prefix}/netcdf/lib ${install_prefix}/hdf5/lib ${install_prefix}/zlib/lib")
+list(APPEND esmf_env "ESMF_NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -ldl -lm")
+
+list(APPEND esmf_env ESMF_PIO=external)
+list(APPEND esmf_env ESMF_PIO_INCLUDE=${install_prefix}/pio/include)
+list(APPEND esmf_env "ESMF_PIO_LIBPATH=${install_prefix}/pio/lib -L${install_prefix}/pnetcdf/lib")
+list(APPEND esmf_env "ESMF_PIO_LIBS=-lpioc -lpnetcdf")
+
+list(APPEND esmf_env ESMF_SHARED_LIB_BUILD=OFF)
+list(APPEND esmf_env ESMF_INSTALL_PREFIX=${install_prefix}/esmf)
+list(APPEND esmf_env ESMF_INSTALL_HEADERDIR=include)
+list(APPEND esmf_env ESMF_INSTALL_MODDIR=mod)
+list(APPEND esmf_env ESMF_INSTALL_LIBDIR=lib)
+list(APPEND esmf_env ESMF_INSTALL_BINDIR=bin)
+
+ExternalProject_Add(esmf
+    URL ${downloads_prefix}/esmf.tar.gz
+    URL_HASH MD5=e4fa27d720c323db600a42b65d4f20f7
+    BUILD_IN_SOURCE ON
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND   env ${esmf_env} make -j 8
+    INSTALL_COMMAND env ${esmf_env} make -j 1 install
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
+ExternalProject_Add_Step(esmf post_install
+    COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/cmake ${install_prefix}/esmf/cmake
+    DEPENDEES install
+    WORKING_DIRECTORY <INSTALL_DIR>
+    LOG ON
+)
+ExternalProject_Add_StepDependencies(esmf build netcdf_fortran pio)
+
+##
+## bacio
+##
+ExternalProject_Add(bacio
+    URL ${downloads_prefix}/bacio.tar.gz
+    URL_HASH MD5=95bab417fbaf7c1f6f99316052189bea
+    BUILD_IN_SOURCE OFF
+    LIST_SEPARATOR ,
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${install_prefix}/bacio
+               -DCMAKE_INSTALL_LIBDIR=lib
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
+
+##
+## sp
+##
+ExternalProject_Add(sp
+    URL ${downloads_prefix}/sp.tar.gz
+    URL_HASH MD5=fc50806fb552b114a9f18d57ad3747a7
+    BUILD_IN_SOURCE OFF
+    LIST_SEPARATOR ,
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${install_prefix}/sp
+               -DCMAKE_INSTALL_LIBDIR=lib
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
+
+##
+## w3emc
+##
+ExternalProject_Add(w3emc
+    URL ${downloads_prefix}/w3emc.tar.gz
+    URL_HASH MD5=ab162725c04899b8295bd74ed184debf
+    BUILD_IN_SOURCE OFF
+    LIST_SEPARATOR ,
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${install_prefix}/w3emc
+               -DCMAKE_INSTALL_LIBDIR=lib
+               -Dbacio_ROOT=${install_prefix}/bacio
+               -DBUILD_WITH_BUFR=OFF
+               -DBUILD_TESTING=OFF
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
+ExternalProject_Add_StepDependencies(w3emc build bacio)

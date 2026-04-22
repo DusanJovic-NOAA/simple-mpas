@@ -3,7 +3,7 @@ set -u
 set -o pipefail
 
 usage() {
-  echo "Usage: $0 gnu | intel | intel_llvm [-all] [-libs] [-model]"
+  echo "Usage: $0 gnu | intel | intel_llvm [-all] [-libs] [-model] [-model_ufs] [-model_ext_esmf]"
   exit 1
 }
 
@@ -53,6 +53,8 @@ fi
 
 BUILD_LIBS=no
 BUILD_MODEL=no
+BUILD_MODEL_UFS=no
+BUILD_MODEL_EXT_ESMF=no
 
 while [[ $# -gt 0 ]]; do
 opt=$1
@@ -61,6 +63,8 @@ case $opt in
   -all)
     BUILD_LIBS=yes
     BUILD_MODEL=yes
+    BUILD_MODEL_UFS=yes
+    BUILD_MODEL_EXT_ESMF=yes
     shift
     ;;
   -libs)
@@ -71,14 +75,24 @@ case $opt in
     BUILD_MODEL=yes
     shift
     ;;
+  -model_ufs)
+    BUILD_MODEL_UFS=yes
+    shift
+    ;;
+  -model_ext_esmf)
+    BUILD_MODEL_EXT_ESMF=yes
+    shift
+    ;;
   *)
     echo "unknown option ${opt}"
     usage
 esac
 done
 
-echo "BUILD_LIBS = ${BUILD_LIBS}"
-echo "BUILD_MODEL = ${BUILD_MODEL}"
+echo "BUILD_LIBS           = ${BUILD_LIBS}"
+echo "BUILD_MODEL          = ${BUILD_MODEL}"
+echo "BUILD_MODEL_UFS      = ${BUILD_MODEL_UFS}"
+echo "BUILD_MODEL_EXT_ESMF = ${BUILD_MODEL_EXT_ESMF}"
 
 MYDIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 readonly MYDIR
@@ -162,8 +176,15 @@ ufslibs_install_prefix=${MYDIR}/libs/install
 
 export ZLIB_ROOT=${ufslibs_install_prefix}/zlib
 export NetCDF_ROOT=${ufslibs_install_prefix}/netcdf
+export netcdf_c_ROOT=${NetCDF_ROOT}  # compatibility with spack-stack
 export PnetCDF_ROOT=${ufslibs_install_prefix}/pnetcdf
 export PIO_ROOT=${ufslibs_install_prefix}/pio
+
+export ESMF_ROOT=${ufslibs_install_prefix}/esmf
+
+export bacio_ROOT=${ufslibs_install_prefix}/bacio
+export sp_ROOT=${ufslibs_install_prefix}/sp
+export w3emc_ROOT=${ufslibs_install_prefix}/w3emc
 
 #
 # model
@@ -182,6 +203,48 @@ printf 'done [%4d sec]\n' ${SECONDS}
   else
     printf 'FAILED [%4d sec]\n' ${SECONDS}
     cat log_model
+    exit 1
+  fi
+fi
+
+#
+# model_ufs
+#
+if [ $BUILD_MODEL_UFS == yes ]; then
+SECONDS=0
+printf '%-.30s ' "Building model_ufs ..........................."
+(
+  cd src
+  ./build_ufs.sh
+
+) > log_model_ufs 2>&1
+status=$?
+  if [ $status -eq 0 ]; then
+printf 'done [%4d sec]\n' ${SECONDS}
+  else
+    printf 'FAILED [%4d sec]\n' ${SECONDS}
+    cat log_model_ufs
+    exit 1
+  fi
+fi
+
+#
+# model_ext_esmf
+#
+if [ $BUILD_MODEL_EXT_ESMF == yes ]; then
+SECONDS=0
+printf '%-.30s ' "Building model_ext_esmf ..........................."
+(
+  cd src/standalone-ext-esmf
+  ./build.sh
+
+) > log_model_ext_esmf 2>&1
+status=$?
+  if [ $status -eq 0 ]; then
+printf 'done [%4d sec]\n' ${SECONDS}
+  else
+    printf 'FAILED [%4d sec]\n' ${SECONDS}
+    cat log_model_ext_esmf
     exit 1
   fi
 fi

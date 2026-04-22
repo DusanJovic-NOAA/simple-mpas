@@ -70,6 +70,7 @@ rm -rf ${install_prefix}/gklib
 make config prefix=${install_prefix}/gklib
 make
 make install
+mkdir -p ${install_prefix}/gklib/lib/
 mv ${install_prefix}/gklib/lib64/* ${install_prefix}/gklib/lib/
 )
 
