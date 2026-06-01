@@ -59,11 +59,14 @@ download_and_check_md5sum bb4552a07eadb6c5a54677f96282489d  https://parallel-net
 download_and_check_md5sum 7f3504dfb5aab846f4a9018dda7bb8ad  https://github.com/PARALLELIO/genf90/archive/refs/tags/genf90_200608.tar.gz               genf90.tar.gz
 download_and_check_md5sum b16e88125fbb7e5bd06e8f392f91ae26  https://github.com/NCAR/ParallelIO/archive/refs/tags/pio2_6_2.tar.gz                      pio.tar.gz
 
+download_and_check_md5sum 82a26e62825d4439b58535d9b29da7a4  https://github.com/NOAA-GFDL/FMS/archive/refs/tags/2024.01.tar.gz                         fms.tar.gz
 download_and_check_md5sum e4fa27d720c323db600a42b65d4f20f7  https://github.com/esmf-org/esmf/archive/refs/tags/v8.9.0.tar.gz                          esmf.tar.gz
 
 download_and_check_md5sum 95bab417fbaf7c1f6f99316052189bea  https://github.com/NOAA-EMC/NCEPLIBS-bacio/archive/refs/tags/v2.4.1.tar.gz                bacio.tar.gz
 download_and_check_md5sum fc50806fb552b114a9f18d57ad3747a7  https://github.com/NOAA-EMC/NCEPLIBS-sp/archive/refs/tags/v2.5.0.tar.gz                   sp.tar.gz
 download_and_check_md5sum ab162725c04899b8295bd74ed184debf  https://github.com/NOAA-EMC/NCEPLIBS-w3emc/archive/refs/tags/v2.12.0.tar.gz               w3emc.tar.gz
+
+download_and_check_md5sum d94a92c7206139d2b9dafab64d9c75bf  https://gitlab.inria.fr/scotch/scotch/-/archive/v7.0.7/scotch-v7.0.7.tar.gz               scotch.tar.gz
 
 curl -f -k -s -S -R -L https://github.com/KarypisLab/GKlib/archive/refs/heads/master.tar.gz  -o  gklib.tar.gz
 curl -f -k -s -S -R -L https://github.com/KarypisLab/METIS/archive/refs/tags/v5.2.1.tar.gz   -o  metis.tar.gz

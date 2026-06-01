@@ -226,6 +226,28 @@ ExternalProject_Add(pio
 ExternalProject_Add_StepDependencies(pio build netcdf_fortran pnetcdf genf90 cmake_fortran_utils)
 
 ##
+## FMS
+##
+ExternalProject_Add(fms
+    URL ${downloads_prefix}/fms.tar.gz
+    URL_HASH MD5=82a26e62825d4439b58535d9b29da7a4
+    BUILD_IN_SOURCE OFF
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${install_prefix}/fms
+               -DCMAKE_PREFIX_PATH=${install_prefix}/netcdf
+               -DCMAKE_Fortran_COMPILER=${MPI_Fortran_COMPILER}
+               -DGFS_PHYS=ON
+               -DCONSTANTS=GFS
+               -D64BIT=ON
+               -DOPENMP=ON
+               -DUSE_DEPRECATED_IO=ON
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
+ExternalProject_Add_StepDependencies(fms build netcdf_fortran)
+
+##
 ## ESMF
 ##
 list(APPEND esmf_env ESMF_DIR=${CMAKE_CURRENT_BINARY_DIR}/esmf-prefix/src/esmf)
@@ -359,3 +381,28 @@ ExternalProject_Add(w3emc
     LOG_INSTALL ON
 )
 ExternalProject_Add_StepDependencies(w3emc build bacio)
+
+
+##
+## scotch
+##
+ExternalProject_Add(scotch
+    URL ${downloads_prefix}/scotch.tar.gz
+    URL_HASH MD5=d94a92c7206139d2b9dafab64d9c75bf
+    BUILD_IN_SOURCE OFF
+    LIST_SEPARATOR ,
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${install_prefix}/scotch
+               -DCMAKE_BUILD_TYPE=Release
+               -DCMAKE_C_STANDARD=99
+               -DBUILD_LIBSCOTCHMETIS=ON
+               -DINSTALL_METIS_HEADERS=ON
+               -DBUILD_LIBESMUMPS=OFF
+               -DBUILD_SHARED_LIBS=OFF
+               -DBUILD_PTSCOTCH=ON
+               -DTHREADS=OFF
+               -DMPI_THREAD_MULTIPLE=OFF
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+)
