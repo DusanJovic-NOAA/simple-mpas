@@ -7,8 +7,15 @@ readonly MYDIR
 cd ${MYDIR}
 
 (
-rm -rf MPAS-Model
-git clone https://github.com/MPAS-Dev/MPAS-Model.git
+rm -rf MPAS-Model-ncar
+git clone https://github.com/MPAS-Dev/MPAS-Model.git MPAS-Model-ncar
+)
+
+(
+rm -rf MPAS-Model-gsl
+git clone --recursive https://github.com/ufs-community/MPAS-Model MPAS-Model-gsl
+
+sed -i -e 's/valm = dotProduct(velCellp/valm = dotProduct(velCellm/g' MPAS-Model-gsl/src/core_atmosphere/diagnostics/mpas_pv_diagnostics.F
 )
 
 (
@@ -29,6 +36,11 @@ git clone https://github.com/mgduda/convert_mpas.git
 (
 rm -rf MPAS-Limited-Area
 git clone https://github.com/MPAS-Dev/MPAS-Limited-Area.git
+)
+
+(
+rm -rf MPASSIT
+git clone https://github.com/LarissaReames/MPASSIT.git
 )
 
 (

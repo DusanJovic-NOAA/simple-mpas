@@ -3,7 +3,7 @@ set -u
 set -o pipefail
 
 usage() {
-  echo "Usage: $0 gnu | intel | intel_llvm [-all] [-libs] [-model] [-model_ufs] [-model_ext_esmf]"
+  echo "Usage: $0 gnu | intel | intel_llvm [-all] [-libs] [-tools] [-model_ncar] [-model_gsl] [-model_ufs] [-model_ext_esmf]"
   exit 1
 }
 
@@ -52,7 +52,9 @@ else
 fi
 
 BUILD_LIBS=no
-BUILD_MODEL=no
+BUILD_TOOLS=no
+BUILD_MODEL_NCAR=no
+BUILD_MODEL_GSL=no
 BUILD_MODEL_UFS=no
 BUILD_MODEL_EXT_ESMF=no
 
@@ -62,7 +64,9 @@ opt=$1
 case $opt in
   -all)
     BUILD_LIBS=yes
-    BUILD_MODEL=yes
+    BUILD_TOOLS=yes
+    BUILD_MODEL_NCAR=yes
+    BUILD_MODEL_GSL=yes
     BUILD_MODEL_UFS=yes
     BUILD_MODEL_EXT_ESMF=yes
     shift
@@ -71,8 +75,16 @@ case $opt in
     BUILD_LIBS=yes
     shift
     ;;
-  -model)
-    BUILD_MODEL=yes
+  -tools)
+    BUILD_TOOLS=yes
+    shift
+    ;;
+  -model_ncar)
+    BUILD_MODEL_NCAR=yes
+    shift
+    ;;
+  -model_gsl)
+    BUILD_MODEL_GSL=yes
     shift
     ;;
   -model_ufs)
@@ -90,7 +102,9 @@ esac
 done
 
 echo "BUILD_LIBS           = ${BUILD_LIBS}"
-echo "BUILD_MODEL          = ${BUILD_MODEL}"
+echo "BUILD_TOOLS          = ${BUILD_TOOLS}"
+echo "BUILD_MODEL_NCAR     = ${BUILD_MODEL_NCAR}"
+echo "BUILD_MODEL_GSL      = ${BUILD_MODEL_GSL}"
 echo "BUILD_MODEL_UFS      = ${BUILD_MODEL_UFS}"
 echo "BUILD_MODEL_EXT_ESMF = ${BUILD_MODEL_EXT_ESMF}"
 
@@ -106,9 +120,9 @@ echo
 echo "CC = ${CC}"
 echo "CXX = ${CXX}"
 echo "FC = ${FC}"
-which ${CC}
-which ${CXX}
-which ${FC}
+which "${CC}"
+which "${CXX}"
+which "${FC}"
 ${CC} --version | head -1
 ${CXX} --version | head -1
 ${FC} --version | head -1
@@ -116,9 +130,9 @@ echo
 echo "MPICC = ${MPICC}"
 echo "MPICXX = ${MPICXX}"
 echo "MPIF90 = ${MPIF90}"
-which ${MPICC}
-which ${MPICXX}
-which ${MPIF90}
+which "${MPICC}"
+which "${MPICXX}"
+which "${MPIF90}"
 ${MPICC} --version | head -1
 ${MPICXX} --version | head -1
 ${MPIF90} --version | head -1
@@ -133,18 +147,18 @@ if [ $BUILD_LIBS == yes ]; then
 SECONDS=0
 printf '%-.30s ' "Building libs ............................."
 (
-  cd ${MYDIR}/libs
+  cd "${MYDIR}/libs"
 
   rm -rf build install
   mkdir build
-  cd build
+  cd build 
 
   cmake .. -DCMAKE_INSTALL_PREFIX=../install
 
   make -j 8
 
-  cd ${MYDIR}/libs
-  ./build_metis.sh ${COMPILER}
+  cd "${MYDIR}/libs"
+  ./build_metis.sh "${COMPILER}"
 
 ) > log_libs 2>&1
 status=$?
@@ -181,28 +195,72 @@ export PnetCDF_ROOT=${ufslibs_install_prefix}/pnetcdf
 export PIO_ROOT=${ufslibs_install_prefix}/pio
 
 export ESMF_ROOT=${ufslibs_install_prefix}/esmf
+export ESMFMKFILE=${ESMF_ROOT}/lib/esmf.mk
+export FMS_ROOT=${ufslibs_install_prefix}/fms
 
 export bacio_ROOT=${ufslibs_install_prefix}/bacio
 export sp_ROOT=${ufslibs_install_prefix}/sp
 export w3emc_ROOT=${ufslibs_install_prefix}/w3emc
 
 #
-# model
+# tools
 #
-if [ $BUILD_MODEL == yes ]; then
+if [ $BUILD_TOOLS == yes ]; then
 SECONDS=0
-printf '%-.30s ' "Building model ..........................."
+printf '%-.30s ' "Building tools ..........................."
 (
-  cd src
-  ./build.sh
+  cd src || exit
+  ./build_tools.sh
 
-) > log_model 2>&1
+) > log_tools 2>&1
 status=$?
   if [ $status -eq 0 ]; then
 printf 'done [%4d sec]\n' ${SECONDS}
   else
     printf 'FAILED [%4d sec]\n' ${SECONDS}
-    cat log_model
+    cat log_tools
+    exit 1
+  fi
+fi
+
+#
+# model_ncar
+#
+if [ $BUILD_MODEL_NCAR == yes ]; then
+SECONDS=0
+printf '%-.30s ' "Building model_ncar ..........................."
+(
+  cd src || exit 1
+  ./build_model_ncar.sh
+
+) > log_model_ncar 2>&1
+status=$?
+  if [ $status -eq 0 ]; then
+printf 'done [%4d sec]\n' ${SECONDS}
+  else
+    printf 'FAILED [%4d sec]\n' ${SECONDS}
+    cat log_model_ncar
+    exit 1
+  fi
+fi
+
+#
+# model_gsl
+#
+if [ $BUILD_MODEL_GSL == yes ]; then
+SECONDS=0
+printf '%-.30s ' "Building model_gsl ..........................."
+(
+  cd src || exit 1
+  ./build_model_gsl.sh
+
+) > log_model_gsl 2>&1
+status=$?
+  if [ $status -eq 0 ]; then
+printf 'done [%4d sec]\n' ${SECONDS}
+  else
+    printf 'FAILED [%4d sec]\n' ${SECONDS}
+    cat log_model_gsl
     exit 1
   fi
 fi
@@ -214,7 +272,7 @@ if [ $BUILD_MODEL_UFS == yes ]; then
 SECONDS=0
 printf '%-.30s ' "Building model_ufs ..........................."
 (
-  cd src
+  cd src || exit 1
   ./build_ufs.sh
 
 ) > log_model_ufs 2>&1
@@ -235,7 +293,7 @@ if [ $BUILD_MODEL_EXT_ESMF == yes ]; then
 SECONDS=0
 printf '%-.30s ' "Building model_ext_esmf ..........................."
 (
-  cd src/standalone-ext-esmf
+  cd src/standalone-ext-esmf || exit 1
   ./build.sh
 
 ) > log_model_ext_esmf 2>&1
